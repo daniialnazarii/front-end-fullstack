@@ -12,10 +12,13 @@
 			<p class="eyebrow">After-school learning</p>
 			<h1>Find a lesson that sparks curiosity.</h1>
 			<p class="intro">Explore practical, creative, and future-focused courses for curious learners.</p>
+			<button type="button" :disabled="numberOfItems === 0" @click="toggleCart">
+				Checkout ({{ numberOfItems }})
+			</button>
 		</header>
 
 		<main>
-			<section class="lesson-grid" aria-label="Available after-school lessons">
+			<section v-if="!displayCart" class="lesson-grid" aria-label="Available after-school lessons">
 				<article v-for="lesson in lessons" :key="lesson.subject" class="lesson-card">
 					<img class="lesson-image" :src="lesson.image" :alt="lesson.alt">
 					<div class="lesson-content">
@@ -35,9 +38,20 @@
 								<dd>{{ lesson.tutor }}</dd>
 							</div>
 						</dl>
-						<button type="button">View lesson</button>
+						<button type="button" @click="addToCart(lesson)">Add to cart</button>
 					</div>
 				</article>
+			</section>
+
+			<section v-else class="checkout" aria-labelledby="checkout-heading">
+				<h2 id="checkout-heading">checkout</h2>
+				<form>
+					<label for="customer-name">Name</label>
+					<input id="customer-name" v-model="order.name" type="text" autocomplete="name">
+
+					<label for="customer-telephone">Telephone</label>
+					<input id="customer-telephone" v-model="order.telephone" type="tel" autocomplete="tel">
+				</form>
 			</section>
 		</main>
 	</div>
@@ -47,6 +61,13 @@
 		Vue.createApp({
 			data() {
 				return {
+					order: {
+						name: '',
+						telephone: '',
+						lessonSlots: []
+					},
+					cart: [],
+					displayCart: false,
 					lessons: [
 						{
 							subject: 'Computer Science',
@@ -90,6 +111,21 @@
 						}
 					]
 				};
+			},
+			computed: {
+				numberOfItems() {
+					return this.cart.length;
+				}
+			},
+			methods: {
+				addToCart(lesson) {
+					this.cart.push(lesson);
+				},
+				toggleCart() {
+					if (this.numberOfItems > 0) {
+						this.displayCart = !this.displayCart;
+					}
+				}
 			}
 		}).mount('#app');
 	</script>
