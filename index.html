@@ -13,7 +13,7 @@
 			<h1>Find a lesson that sparks curiosity.</h1>
 			<p class="intro">Explore practical, creative, and future-focused courses for curious learners.</p>
 			<button type="button" :disabled="numberOfItems === 0" @click="toggleCart">
-				Checkout ({{ numberOfItems }})
+				{{ displayCart ? 'Back to lessons' : `Shopping Cart (${numberOfItems})` }}
 			</button>
 		</header>
 
@@ -37,14 +37,25 @@
 								<dt>Tutor</dt>
 								<dd>{{ lesson.tutor }}</dd>
 							</div>
+							<div>
+								<dt>Spaces</dt>
+								<dd>{{ lesson.spaces }}</dd>
+							</div>
 						</dl>
-						<button type="button" @click="addToCart(lesson)">Add to cart</button>
+						<button type="button" :disabled="lesson.spaces === 0" @click="addToCart(lesson)">
+							Add to Cart
+						</button>
 					</div>
 				</article>
 			</section>
 
 			<section v-else class="checkout" aria-labelledby="checkout-heading">
-				<h2 id="checkout-heading">checkout</h2>
+				<h2 id="checkout-heading">Shopping Cart</h2>
+				<ul v-if="cart.length > 0">
+					<li v-for="(lesson, index) in cart" :key="index">
+						{{ lesson.subject }} — {{ lesson.location }} — {{ lesson.price }}
+					</li>
+				</ul>
 				<form>
 					<label for="customer-name">Name</label>
 					<input id="customer-name" v-model="order.name" type="text" autocomplete="name">
@@ -75,7 +86,8 @@
 							price: '17,000 ',
                             tutor: 'John Doe',
 							image: 'images/computer-science.jpg',
-							alt: 'A student learning computer science at a laptop'
+                            alt: 'A student learning computer science at a laptop',
+                            spaces: 5
 						},
 						{
 							subject: 'Art',
@@ -83,7 +95,8 @@
 							price: '11,000',
                             tutor: 'Akira Smith',
 							image: 'images/art.jpg',
-							alt: 'Colourful art supplies ready for a creative lesson'
+                            alt: 'Colourful art supplies ready for a creative lesson',
+                            spaces: 5
 						},
 						{
 							subject: 'Engineering',
@@ -91,7 +104,8 @@
 							price: '20,000',
                             tutor: 'Emily Johnson',
 							image: 'images/engineering.jpg',
-							alt: 'A student building a small engineering project'
+                            alt: 'A student building a small engineering project',
+                            spaces: 5
 						},
 						{
 							subject: 'Business',
@@ -99,7 +113,8 @@
 							price: '17,000',
                             tutor: 'Michael Brown',
 							image: 'images/business.jpg',
-							alt: 'Students collaborating around a table during a business lesson'
+                            alt: 'Students collaborating around a table during a business lesson',
+                            spaces: 5
 						},
 						{
 							subject: 'Cybersecurity',
@@ -107,7 +122,8 @@
 							price: '22,000',
                             tutor: 'Sarah Davis',
 							image: 'images/cybersecurity.jpg',
-							alt: 'A secure digital network represented on a computer screen'
+                            alt: 'A secure digital network represented on a computer screen',
+                            spaces: 5
 						}
 					]
 				};
@@ -119,7 +135,10 @@
 			},
 			methods: {
 				addToCart(lesson) {
-					this.cart.push(lesson);
+					if (lesson.spaces > 0) {
+						this.cart.push(lesson);
+						lesson.spaces -= 1;
+					}
 				},
 				toggleCart() {
 					if (this.numberOfItems > 0) {
