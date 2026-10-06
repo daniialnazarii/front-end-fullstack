@@ -66,15 +66,6 @@ h1 {
 	line-height: 1.6;
 }
 
-.story-link {
-	display: inline-block;
-	margin-top: 22px;
-	color: var(--accent-dark);
-	font-family: Arial, sans-serif;
-	font-size: 0.9rem;
-	font-weight: 700;
-}
-
 .lesson-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);

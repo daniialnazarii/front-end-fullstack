@@ -12,14 +12,13 @@
 			<p class="eyebrow">After-school learning</p>
 			<h1>Find a lesson that sparks curiosity.</h1>
 			<p class="intro">Explore practical, creative, and future-focused courses for curious learners.</p>
-			<a class="story-link" href="story.html">Create your own story</a>
 			<button type="button" :disabled="numberOfItems === 0" @click="toggleCart">
 				{{ displayCart ? 'Back to lessons' : `Shopping Cart (${numberOfItems})` }}
 			</button>
 		</header>
 
 		<main>
-			<p v-if="orderConfirmed" role="status">Your order has been confirmed.</p>
+			<p v-if="orderConfirmed" role="status">Your order has been submitted.</p>
 
 			<section v-if="!displayCart" class="lesson-grid" aria-label="Available after-school lessons">
 				<article v-for="lesson in lessons" :key="lesson.subject" class="lesson-card">
@@ -67,8 +66,8 @@
 					<label for="customer-name">Name</label>
 					<input id="customer-name" v-model="order.name" type="text" autocomplete="name">
 
-					<label for="customer-telephone">Telephone</label>
-					<input id="customer-telephone" v-model="order.telephone" type="tel" autocomplete="tel">
+					<label for="customer-phone">Phone</label>
+					<input id="customer-phone" v-model="order.telephone" type="tel" autocomplete="tel">
 
 					<button type="submit" :disabled="!customerInformationComplete">
 						Checkout
