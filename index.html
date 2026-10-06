@@ -18,6 +18,8 @@
 		</header>
 
 		<main>
+			<p v-if="orderConfirmed" role="status">Your order has been confirmed.</p>
+
 			<section v-if="!displayCart" class="lesson-grid" aria-label="Available after-school lessons">
 				<article v-for="lesson in lessons" :key="lesson.subject" class="lesson-card">
 					<img class="lesson-image" :src="lesson.image" :alt="lesson.alt">
@@ -56,12 +58,16 @@
 						{{ lesson.subject }} — {{ lesson.location }} — {{ lesson.price }}
 					</li>
 				</ul>
-				<form>
+				<form @submit.prevent="checkout">
 					<label for="customer-name">Name</label>
 					<input id="customer-name" v-model="order.name" type="text" autocomplete="name">
 
 					<label for="customer-telephone">Telephone</label>
 					<input id="customer-telephone" v-model="order.telephone" type="tel" autocomplete="tel">
+
+					<button type="submit" :disabled="!customerInformationComplete">
+						Checkout
+					</button>
 				</form>
 			</section>
 		</main>
@@ -79,6 +85,7 @@
 					},
 					cart: [],
 					displayCart: false,
+					orderConfirmed: false,
 					lessons: [
 						{
 							subject: 'Computer Science',
@@ -131,13 +138,24 @@
 			computed: {
 				numberOfItems() {
 					return this.cart.length;
+				},
+				customerInformationComplete() {
+					return this.order.name.trim() !== '' && this.order.telephone.trim() !== '';
 				}
 			},
 			methods: {
 				addToCart(lesson) {
 					if (lesson.spaces > 0) {
+						this.orderConfirmed = false;
 						this.cart.push(lesson);
 						lesson.spaces -= 1;
+					}
+				},
+				checkout() {
+					if (this.customerInformationComplete) {
+						this.cart = [];
+						this.displayCart = false;
+						this.orderConfirmed = true;
 					}
 				},
 				toggleCart() {
