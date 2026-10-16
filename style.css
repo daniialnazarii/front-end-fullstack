@@ -66,6 +66,44 @@ h1 {
 	line-height: 1.6;
 }
 
+.lesson-controls {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 24px;
+	font-family: Arial, sans-serif;
+}
+
+.lesson-controls label {
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.lesson-controls select {
+	padding: 9px 12px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	font: inherit;
+}
+
+.lesson-controls .sort-direction {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: 8px;
+	font-weight: 400;
+}
+
+.sort-direction input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--accent);
+}
+
 .lesson-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);

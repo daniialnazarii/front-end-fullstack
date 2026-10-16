@@ -20,8 +20,23 @@
 		<main>
 			<p v-if="orderConfirmed" role="status">Your order has been submitted.</p>
 
-			<section v-if="!displayCart" class="lesson-grid" aria-label="Available after-school lessons">
-				<article v-for="lesson in lessons" :key="lesson.subject" class="lesson-card">
+			<section v-if="!displayCart" aria-label="Available after-school lessons">
+				<form class="lesson-controls" @submit.prevent>
+					<label for="sort-type">Sort lessons by</label>
+					<select id="sort-type" v-model="sortType">
+						<option value="price">Price</option>
+						<option value="spaces">Availability</option>
+						<option value="location">Location</option>
+						<option value="subject">Subject</option>
+					</select>
+
+					<label class="sort-direction" for="sort-ascending">
+						<input id="sort-ascending" v-model="sortAscending" type="checkbox">
+						In increasing order
+					</label>
+				</form>
+			<div class="lesson-grid">
+				<article v-for="lesson in sortedLessons" :key="lesson.id" class="lesson-card">
 					<img class="lesson-image" :src="lesson.image" :alt="lesson.alt">
 					<div class="lesson-content">
 						<p class="lesson-category">After-school lesson</p>
@@ -49,6 +64,7 @@
 						</button>
 					</div>
 				</article>
+			</div>
 			</section>
 
 			<section v-else class="checkout" aria-labelledby="checkout-heading">
@@ -90,69 +106,54 @@
 					cart: [],
 					displayCart: false,
 					orderConfirmed: false,
-					lessons: [
-						{
-							id: 'computer-science',
-							subject: 'Computer Science',
-							location: 'Hendon',
-							price: '17,000 ',
-                            tutor: 'John Doe',
-							image: 'images/computer-science.jpg',
-                            alt: 'A student learning computer science at a laptop',
-                            spaces: 5
-						},
-						{
-							id: 'art',
-							subject: 'Art',
-							location: 'Wembley',
-							price: '11,000',
-                            tutor: 'Akira Smith',
-							image: 'images/art.jpg',
-                            alt: 'Colourful art supplies ready for a creative lesson',
-                            spaces: 5
-						},
-						{
-							id: 'engineering',
-							subject: 'Engineering',
-							location: 'Harrow',
-							price: '20,000',
-                            tutor: 'Emily Johnson',
-							image: 'images/engineering.jpg',
-                            alt: 'A student building a small engineering project',
-                            spaces: 5
-						},
-						{
-							id: 'business',
-							subject: 'Business',
-							location: 'Edgware',
-							price: '17,000',
-                            tutor: 'Michael Brown',
-							image: 'images/business.jpg',
-                            alt: 'Students collaborating around a table during a business lesson',
-                            spaces: 5
-						},
-						{
-							id: 'cybersecurity',
-							subject: 'Cybersecurity',
-							location: 'Finchley',
-							price: '22,000',
-                            tutor: 'Sarah Davis',
-							image: 'images/cybersecurity.jpg',
-                            alt: 'A secure digital network represented on a computer screen',
-                            spaces: 5
-						}
-					]
+					sortAscending: true,
+					sortType: 'price',
+					lessons: []
+						
 				};
+			},
+			created(){
+				this.fetchData();
 			},
 			computed: {
 				numberOfItems() {
 					return this.cart.length;
+				},
+				sortedLessons() {
+					const direction = this.sortAscending ? 1 : -1;
+
+					return [...this.lessons].sort((first, second) => {
+						const firstValue = first[this.sortType];
+						const secondValue = second[this.sortType];
+						let comparison;
+
+						if (this.sortType === 'price' || this.sortType === 'spaces') {
+							const firstNumber = Number(String(firstValue).replace(/[^0-9.-]/g, ''));
+							const secondNumber = Number(String(secondValue).replace(/[^0-9.-]/g, ''));
+							comparison = firstNumber - secondNumber;
+						} else {
+							comparison = String(firstValue ?? '').localeCompare(
+								String(secondValue ?? ''),
+								undefined,
+								{ sensitivity: 'base' }
+							);
+						}
+
+						return comparison * direction;
+					});
 				},
 				customerInformationComplete() {
 					return this.order.name.trim() !== '' && this.order.telephone.trim() !== '';
 				}
 			},
 			methods: {
+				async fetchData() {
+    				const response = await fetch("http://localhost:3002/");
+    				if (!response.ok) {
+     					 throw new Error(`Failed to fetch lessons: ${response.status}`);
+   					 }
+   					 this.lessons = await response.json();
+				},
 				lessonCopies(lessonId) {
 					return this.cart.filter((id) => id === lessonId).length;
 				},
