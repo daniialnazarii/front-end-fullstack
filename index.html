@@ -12,13 +12,14 @@
 			<p class="eyebrow">After-school learning</p>
 			<h1>Find a lesson that sparks curiosity.</h1>
 			<p class="intro">Explore practical, creative, and future-focused courses for curious learners.</p>
-			<button type="button" :disabled="numberOfItems === 0" @click="toggleCart">
+			<button type="button" :disabled="numberOfItems === 0 || checkoutInProgress || orderSaved" @click="toggleCart">
 				{{ displayCart ? 'Back to lessons' : `Shopping Cart (${numberOfItems})` }}
 			</button>
 		</header>
 
 		<main>
 			<p v-if="orderConfirmed" role="status">Your order has been submitted.</p>
+			<p v-if="loadError" role="alert">{{ loadError }}</p>
 
 			<section v-if="!displayCart" aria-label="Available after-school lessons">
 				<form class="lesson-controls" @submit.prevent>
@@ -74,7 +75,7 @@
 						<li v-if="lessonCopies(lesson.id) > 0">
 							{{ lesson.subject }} — {{ lesson.location }} — {{ lesson.price }}
 							<span>Quantity: {{ lessonCopies(lesson.id) }}</span>
-							<button type="button" @click="removeFromCart(lesson.id)">Remove</button>
+							<button type="button" :disabled="checkoutInProgress || orderSaved" @click="removeFromCart(lesson.id)">Remove</button>
 						</li>
 					</template>
 				</ul>
@@ -85,8 +86,9 @@
 					<label for="customer-phone">Phone</label>
 					<input id="customer-phone" v-model="order.telephone" type="tel" autocomplete="tel">
 
-					<button type="submit" :disabled="!customerInformationComplete">
-						Checkout
+					<p v-if="checkoutError" role="alert">{{ checkoutError }}</p>
+					<button type="submit" :disabled="!customerInformationComplete || checkoutInProgress">
+						{{ checkoutInProgress ? 'Submitting…' : 'Checkout' }}
 					</button>
 				</form>
 			</section>
@@ -106,6 +108,10 @@
 					cart: [],
 					displayCart: false,
 					orderConfirmed: false,
+					checkoutInProgress: false,
+					checkoutError: '',
+					orderSaved: false,
+					loadError: '',
 					sortAscending: true,
 					sortType: 'price',
 					lessons: []
@@ -113,7 +119,10 @@
 				};
 			},
 			created(){
-				this.fetchData();
+				this.fetchData().catch((error) => {
+					console.error(error);
+					this.loadError = 'Unable to load lessons. Please try again later.';
+				});
 			},
 			computed: {
 				numberOfItems() {
@@ -148,11 +157,24 @@
 			},
 			methods: {
 				async fetchData() {
-    				const response = await fetch("http://localhost:3002/");
-    				if (!response.ok) {
-     					 throw new Error(`Failed to fetch lessons: ${response.status}`);
-   					 }
-   					 this.lessons = await response.json();
+					const response = await fetch("http://localhost:3002/");
+					if (!response.ok) {
+						throw new Error(`Failed to fetch lessons: ${response.status}`);
+					}
+					this.lessons = await response.json();
+				},
+				async updateLesson(lesson) {
+					const response = await fetch(
+						`http://localhost:3002/lessons/${encodeURIComponent(lesson._id)}`,
+						{
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ spaces: lesson.spaces })
+						}
+					);
+					if (!response.ok) {
+						throw new Error(`Failed to update lesson availability: ${response.status}`);
+					}
 				},
 				lessonCopies(lessonId) {
 					return this.cart.filter((id) => id === lessonId).length;
@@ -176,11 +198,50 @@
 						}
 					}
 				},
-				checkout() {
-					if (this.customerInformationComplete) {
+				async checkout() {
+					if (!this.customerInformationComplete || this.checkoutInProgress) {
+						return;
+					}
+
+					this.checkoutInProgress = true;
+					this.checkoutError = '';
+					try {
+						if (!this.orderSaved) {
+							const response = await fetch("http://localhost:3002/orders", {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									name: this.order.name.trim(),
+									telephone: this.order.telephone.trim(),
+									lessonSlots: [...this.cart]
+								})
+							});
+							if (!response.ok) {
+								throw new Error(`Failed to save order: ${response.status}`);
+							}
+							this.orderSaved = true;
+						}
+
+						const lessonIds = [...new Set(this.cart)];
+						for (const lessonId of lessonIds) {
+							const lesson = this.lessons.find((item) => item.id === lessonId);
+							if (!lesson || !lesson._id) {
+								throw new Error('A cart lesson is missing its database ID');
+							}
+							await this.updateLesson(lesson);
+						}
+
 						this.cart = [];
 						this.displayCart = false;
 						this.orderConfirmed = true;
+						this.orderSaved = false;
+					} catch (error) {
+						console.error(error);
+						this.checkoutError = this.orderSaved
+							? 'Your order was saved, but availability could not be updated. Retry checkout to finish updating it.'
+							: 'Unable to submit your order. Please try again.';
+					} finally {
+						this.checkoutInProgress = false;
 					}
 				},
 				toggleCart() {
