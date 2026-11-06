@@ -38,7 +38,14 @@
 				</form>
 			<div class="lesson-grid">
 				<article v-for="lesson in sortedLessons" :key="lesson.id" class="lesson-card">
-					<img class="lesson-image" :src="lesson.image" :alt="lesson.alt">
+					<img
+				v-if="!imageErrors[lesson.id]"
+				class="lesson-image"
+				:src="lesson.image"
+				:alt="lesson.alt"
+				@error="imageErrors[lesson.id] = true"
+					>
+					<div v-else class="lesson-image-fallback" role="img" :aria-label="lesson.alt">📘</div>
 					<div class="lesson-content">
 						<p class="lesson-category">After-school lesson</p>
 						<h2>{{ lesson.subject }}</h2>
@@ -60,7 +67,7 @@
 								<dd>{{ lesson.spaces }}</dd>
 							</div>
 						</dl>
-						<button type="button" :disabled="lesson.spaces === 0" @click="addToCart(lesson)">
+						<button type="button" :disabled="lesson.spaces <= 0" @click="addToCart(lesson)">
 							Add to Cart
 						</button>
 					</div>
@@ -81,14 +88,30 @@
 				</ul>
 				<form @submit.prevent="checkout">
 					<label for="customer-name">Name</label>
-					<input id="customer-name" v-model="order.name" type="text" autocomplete="name">
+					<input
+						id="customer-name"
+						v-model.trim="order.name"
+						type="text"
+						autocomplete="name"
+						pattern="[A-Za-z ]+"
+						title="Use letters and spaces only"
+						:disabled="checkoutInProgress || orderSaved"
+					>
 
 					<label for="customer-phone">Phone</label>
-					<input id="customer-phone" v-model="order.telephone" type="tel" autocomplete="tel">
+					<input
+						id="customer-phone"
+						v-model.trim="order.telephone"
+						type="tel"
+						autocomplete="tel"
+						pattern="[0-9]+"
+						title="Use digits only"
+						:disabled="checkoutInProgress || orderSaved"
+					>
 
 					<p v-if="checkoutError" role="alert">{{ checkoutError }}</p>
 					<button type="submit" :disabled="!customerInformationComplete || checkoutInProgress">
-						{{ checkoutInProgress ? 'Submitting…' : 'Checkout' }}
+						{{ checkoutInProgress ? 'Submitting…' : 'Place Order' }}
 					</button>
 				</form>
 			</section>
@@ -112,6 +135,7 @@
 					checkoutError: '',
 					orderSaved: false,
 					loadError: '',
+					imageErrors: {},
 					sortAscending: true,
 					sortType: 'price',
 					lessons: []
@@ -152,12 +176,13 @@
 					});
 				},
 				customerInformationComplete() {
-					return this.order.name.trim() !== '' && this.order.telephone.trim() !== '';
+					return /^[A-Za-z ]+$/.test(this.order.name.trim()) &&
+						/^[0-9]+$/.test(this.order.telephone.trim());
 				}
 			},
 			methods: {
 				async fetchData() {
-					const response = await fetch("http://localhost:3002/");
+					const response = await fetch("http://localhost:3002/lessons");
 					if (!response.ok) {
 						throw new Error(`Failed to fetch lessons: ${response.status}`);
 					}
@@ -233,6 +258,7 @@
 
 						this.cart = [];
 						this.displayCart = false;
+						this.order = { name: '', telephone: '', lessonSlots: [] };
 						this.orderConfirmed = true;
 						this.orderSaved = false;
 					} catch (error) {
