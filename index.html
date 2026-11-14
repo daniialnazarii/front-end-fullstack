@@ -22,6 +22,36 @@
 			<p v-if="loadError" role="alert">{{ loadError }}</p>
 
 			<section v-if="!displayCart" aria-label="Available after-school lessons">
+				<form class="lesson-search" @submit.prevent="searchLessons">
+					<label for="lesson-search-input">Search lessons, tutors, teachers, and locations</label>
+					<div class="lesson-search-controls">
+						<input
+							id="lesson-search-input"
+							v-model.trim="searchTerm"
+							type="search"
+							placeholder="Try a subject, tutor, teacher, or location"
+							:disabled="searchInProgress"
+						>
+						<button type="submit" :disabled="!lessonsLoaded || searchInProgress || !searchTerm.trim()">
+							{{ searchInProgress ? 'Searching…' : 'Search' }}
+						</button>
+						<button
+							type="button"
+							:disabled="searchInProgress || (!searchTerm && searchResults === null)"
+							@click="clearSearch"
+						>
+							Clear
+						</button>
+					</div>
+					<p v-if="searchError" role="alert">{{ searchError }}</p>
+					<p v-if="searchResults !== null" role="status">
+						Showing {{ searchResults.length }} matching lesson(s) for “{{ searchedTerm }}”.
+					</p>
+					<p v-if="searchResults !== null && searchResults.length === 0">
+						No lessons match your search.
+					</p>
+				</form>
+
 				<form class="lesson-controls" @submit.prevent>
 					<label for="sort-type">Sort lessons by</label>
 					<select id="sort-type" v-model="sortType">
@@ -136,6 +166,12 @@
 					orderSaved: false,
 					loadError: '',
 					imageErrors: {},
+					searchTerm: '',
+					searchedTerm: '',
+					searchResults: null,
+					searchInProgress: false,
+					searchError: '',
+					lessonsLoaded: false,
 					sortAscending: true,
 					sortType: 'price',
 					lessons: []
@@ -154,8 +190,9 @@
 				},
 				sortedLessons() {
 					const direction = this.sortAscending ? 1 : -1;
+					const lessonsToSort = this.searchResults === null ? this.lessons : this.searchResults;
 
-					return [...this.lessons].sort((first, second) => {
+					return [...lessonsToSort].sort((first, second) => {
 						const firstValue = first[this.sortType];
 						const secondValue = second[this.sortType];
 						let comparison;
@@ -187,6 +224,41 @@
 						throw new Error(`Failed to fetch lessons: ${response.status}`);
 					}
 					this.lessons = await response.json();
+					this.lessonsLoaded = true;
+				},
+				async searchLessons() {
+					const searchTerm = this.searchTerm.trim();
+					if (!searchTerm || this.searchInProgress) {
+						return;
+					}
+
+					this.searchInProgress = true;
+					this.searchError = '';
+					try {
+						const response = await fetch(
+							`https://backend-m01027489.onrender.com/lessons/search?q=${encodeURIComponent(searchTerm)}`
+						);
+						if (!response.ok) {
+							throw new Error(`Failed to search lessons: ${response.status}`);
+						}
+
+						const results = await response.json();
+						this.searchedTerm = searchTerm;
+						this.searchResults = results.map((result) =>
+							this.lessons.find((lesson) => lesson.id === result.id) || result
+						);
+					} catch (error) {
+						console.error(error);
+						this.searchError = 'Unable to search lessons. Please try again.';
+					} finally {
+						this.searchInProgress = false;
+					}
+				},
+				clearSearch() {
+					this.searchTerm = '';
+					this.searchedTerm = '';
+					this.searchResults = null;
+					this.searchError = '';
 				},
 				async updateLesson(lesson) {
 					const response = await fetch(
@@ -238,7 +310,8 @@
 								body: JSON.stringify({
 									name: this.order.name.trim(),
 									telephone: this.order.telephone.trim(),
-									lessonSlots: [...this.cart]
+									lessonSlots: [...this.cart],
+									spaces: this.cart.length
 								})
 							});
 							if (!response.ok) {

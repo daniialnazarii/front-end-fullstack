@@ -80,6 +80,38 @@ h1 {
 	font-weight: 700;
 }
 
+.lesson-search {
+	margin-bottom: 20px;
+	font-family: Arial, sans-serif;
+}
+
+.lesson-search label {
+	display: block;
+	margin-bottom: 8px;
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.lesson-search-controls {
+	display: flex;
+	gap: 8px;
+}
+
+.lesson-search input {
+	min-width: 0;
+	flex: 1;
+	padding: 9px 12px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	font: inherit;
+}
+
+.lesson-search button {
+	width: auto;
+}
+
 .lesson-controls select {
 	padding: 9px 12px;
 	color: var(--ink);
@@ -215,5 +247,13 @@ button:disabled:hover {
 
 	.lesson-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.lesson-search-controls {
+		flex-wrap: wrap;
+	}
+
+	.lesson-search input {
+		flex-basis: 100%;
 	}
 }
